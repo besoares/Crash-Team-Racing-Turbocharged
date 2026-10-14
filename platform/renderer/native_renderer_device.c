@@ -223,6 +223,8 @@ int NativeRenderer_OpenSecondWindow(const char *title)
 	}
 	SDL_GL_SetSwapInterval(0);
 	SDL_GL_MakeCurrent(g_window, context);
+	// Keep keyboard focus, and so F11, on the main window.
+	SDL_RaiseWindow(g_window);
 	NativeRenderer_UpdatePresentationViewport();
 	return 1;
 }
