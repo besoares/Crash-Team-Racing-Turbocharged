@@ -36,6 +36,7 @@ extern int gNativeProjectionStrength;
 extern int gNativeAntiAliasingMode; // enum NativeAntiAliasingMode
 extern int gNativeDitheringEnabled;
 extern int gNativeBorderlessEnabled;
+extern int gNativeDualMonitorEnabled; // two-player views on separate windows
 extern int gNativePgxpMode; // enum NativePgxpMode
 extern int gNativePgxpIntegerNclipEnabled;
 extern int gNativeRendererMode; // enum NativeRendererMode

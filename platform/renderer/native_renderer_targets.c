@@ -61,26 +61,27 @@ internal void NativeRenderer_SetPresentationAspect(int width, int height)
 	s_presentAspectH = height / divisor;
 }
 
-internal void NativeRenderer_UpdatePresentationViewport(void)
+// Fit the presentation aspect inside a window, centred, with bars on the rest.
+internal void NativeRenderer_FitPresentationViewport(int windowWidth, int windowHeight, SDL_Rect *viewport)
 {
 	int viewportW;
 	int viewportH;
 
-	if ((g_windowWidth <= 0) || (g_windowHeight <= 0) || (s_presentAspectW <= 0) || (s_presentAspectH <= 0))
+	if ((windowWidth <= 0) || (windowHeight <= 0) || (s_presentAspectW <= 0) || (s_presentAspectH <= 0))
 	{
-		s_presentViewport.x = 0;
-		s_presentViewport.y = 0;
-		s_presentViewport.w = g_windowWidth;
-		s_presentViewport.h = g_windowHeight;
+		viewport->x = 0;
+		viewport->y = 0;
+		viewport->w = windowWidth;
+		viewport->h = windowHeight;
 		return;
 	}
 
-	viewportW = g_windowWidth;
+	viewportW = windowWidth;
 	viewportH = (viewportW * s_presentAspectH) / s_presentAspectW;
 
-	if (viewportH > g_windowHeight)
+	if (viewportH > windowHeight)
 	{
-		viewportH = g_windowHeight;
+		viewportH = windowHeight;
 		viewportW = (viewportH * s_presentAspectW) / s_presentAspectH;
 	}
 
@@ -93,10 +94,24 @@ internal void NativeRenderer_UpdatePresentationViewport(void)
 		viewportH = 1;
 	}
 
-	s_presentViewport.w = viewportW;
-	s_presentViewport.h = viewportH;
-	s_presentViewport.x = (g_windowWidth - viewportW) / 2;
-	s_presentViewport.y = (g_windowHeight - viewportH) / 2;
+	viewport->w = viewportW;
+	viewport->h = viewportH;
+	viewport->x = (windowWidth - viewportW) / 2;
+	viewport->y = (windowHeight - viewportH) / 2;
+}
+
+internal void NativeRenderer_UpdatePresentationViewport(void)
+{
+	NativeRenderer_FitPresentationViewport(g_windowWidth, g_windowHeight, &s_presentViewport);
+#ifndef __vita__
+	int secondWidth = 0;
+	int secondHeight = 0;
+	if (g_secondWindow != NULL)
+	{
+		SDL_GetWindowSizeInPixels(g_secondWindow, &secondWidth, &secondHeight);
+	}
+	NativeRenderer_FitPresentationViewport(secondWidth, secondHeight, &s_secondPresentViewport);
+#endif
 }
 
 internal void NativeRenderer_InitRenderTarget(struct NativeRenderTarget *target)
@@ -303,6 +318,21 @@ internal void NativeRenderer_BindMainRenderTarget(void)
 #endif
 
 #ifndef __vita__
+	// A dual view presents each split-screen view on its own window, so each
+	// view gets the rows of the larger window and the target grows to match.
+	const int dualViewHeight = (s_frameDualViewHeight < logicalHeight) ? s_frameDualViewHeight : 0;
+	if (dualViewHeight > 0)
+	{
+		if (s_secondPresentViewport.w > physicalWidth)
+		{
+			physicalWidth = s_secondPresentViewport.w;
+		}
+		if (s_secondPresentViewport.h > physicalHeight)
+		{
+			physicalHeight = s_secondPresentViewport.h;
+		}
+		physicalHeight = (int)(((s64)physicalHeight * logicalHeight + dualViewHeight / 2) / dualViewHeight);
+	}
 	if (s_framePs1Resolution)
 	{
 		// The PS1 drew logicalWidth pixels across a 4:3 picture. Keep that
@@ -312,6 +342,11 @@ internal void NativeRenderer_BindMainRenderTarget(void)
 		if ((s_presentViewport.w > 0) && (s_presentViewport.h > 0))
 		{
 			physicalWidth = (int)(((s64)logicalWidth * s_presentViewport.w * 3 + (s64)s_presentViewport.h * 2) / ((s64)s_presentViewport.h * 4));
+		}
+		if (dualViewHeight > 0)
+		{
+			// Each view keeps the original line count of a full screen.
+			physicalHeight = (logicalHeight * logicalHeight + dualViewHeight / 2) / dualViewHeight;
 		}
 	}
 	s_mainResolveWidth = (physicalWidth < 1) ? 1 : physicalWidth;
@@ -588,20 +623,28 @@ internal const struct NativeRenderTarget *NativeRenderer_ResolveMainRenderTarget
 }
 #endif
 
-void NativeRenderer_PresentMainRenderTarget(void)
+// The rows of the resolved main target, in texture coordinates, that a
+// window shows: one split-screen view each during a dual view, else all of it.
+internal void NativeRenderer_GetPresentSourceRows(int view, float *sourceY, float *sourceH)
 {
-	if ((s_mainRenderTarget.texture == 0) || (s_mainRenderTarget.width <= 0) || (s_mainRenderTarget.height <= 0))
-	{
-		return;
-	}
-
+	*sourceY = 0.0f;
+	*sourceH = 1.0f;
 #ifndef __vita__
-	const struct NativeRenderTarget *source = NativeRenderer_ResolveMainRenderTarget();
+	const int logicalHeight = s_mainRenderTarget.logicalHeight;
+	if ((s_frameDualViewHeight > 0) && (s_frameDualViewHeight < logicalHeight))
+	{
+		// Texture row 0 is the bottom of the screen: the first view is the top.
+		*sourceH = (float)s_frameDualViewHeight / (float)logicalHeight;
+		*sourceY = (view == 0) ? 1.0f - *sourceH : 0.0f;
+	}
 #else
-	const struct NativeRenderTarget *source = &s_mainRenderTarget;
+	(void)view;
 #endif
+}
 
-	NativeRenderer_SetViewPort(s_presentViewport.x, s_presentViewport.y, s_presentViewport.w, s_presentViewport.h);
+internal void NativeRenderer_PresentSource(const struct NativeRenderTarget *source, const SDL_Rect *viewport, float sourceY, float sourceH)
+{
+	NativeRenderer_SetViewPort(viewport->x, viewport->y, viewport->w, viewport->h);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	NativeRenderer_SetScissorState(0);
@@ -613,6 +656,10 @@ void NativeRenderer_PresentMainRenderTarget(void)
 	glUseProgram(s_presentRgbaShader);
 	glUniform1f(s_presentRgbaFlipYLoc, 0.0f);
 #ifndef __vita__
+	if (s_presentRgbaSourceRectLoc >= 0)
+	{
+		glUniform4f(s_presentRgbaSourceRectLoc, 0.0f, sourceY, 1.0f, sourceH);
+	}
 	if (s_presentRgbaTexelSizeLoc >= 0)
 	{
 		glUniform2f(s_presentRgbaTexelSizeLoc, 1.0f / (float)source->width, 1.0f / (float)source->height);
@@ -623,13 +670,17 @@ void NativeRenderer_PresentMainRenderTarget(void)
 	}
 	// Only an upscaled source needs sharp bilinear; the other present-shader
 	// users rely on it being off, so it is reset after this draw.
-	const b32 sharpUpscale = (s_presentRgbaSharpPrescaleLoc >= 0) && ((source->width < s_presentViewport.w) || (source->height < s_presentViewport.h));
+	const int sourceRows = (int)((float)source->height * sourceH + 0.5f);
+	const b32 sharpUpscale = (s_presentRgbaSharpPrescaleLoc >= 0) && (sourceRows > 0) && ((source->width < viewport->w) || (sourceRows < viewport->h));
 	if (sharpUpscale)
 	{
-		const int prescaleX = s_presentViewport.w / source->width;
-		const int prescaleY = s_presentViewport.h / source->height;
+		const int prescaleX = viewport->w / source->width;
+		const int prescaleY = viewport->h / sourceRows;
 		glUniform2f(s_presentRgbaSharpPrescaleLoc, (float)(prescaleX < 1 ? 1 : prescaleX), (float)(prescaleY < 1 ? 1 : prescaleY));
 	}
+#else
+	(void)sourceY;
+	(void)sourceH;
 #endif
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, source->texture);
@@ -647,6 +698,10 @@ void NativeRenderer_PresentMainRenderTarget(void)
 	{
 		glUniform2f(s_presentRgbaSharpPrescaleLoc, 0.0f, 0.0f);
 	}
+	if (s_presentRgbaSourceRectLoc >= 0)
+	{
+		glUniform4f(s_presentRgbaSourceRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+	}
 #endif
 
 	if (previousStencilEnabled)
@@ -657,6 +712,80 @@ void NativeRenderer_PresentMainRenderTarget(void)
 
 	NativeRenderer_InvalidateBindingCache();
 }
+
+#ifndef __vita__
+// What the last PresentMainRenderTarget showed, so the second window shows
+// the same frame without resolving anti-aliasing twice.
+global_variable const struct NativeRenderTarget *s_presentedSource = NULL;
+#endif
+
+void NativeRenderer_PresentMainRenderTarget(void)
+{
+	if ((s_mainRenderTarget.texture == 0) || (s_mainRenderTarget.width <= 0) || (s_mainRenderTarget.height <= 0))
+	{
+		return;
+	}
+
+#ifndef __vita__
+	const struct NativeRenderTarget *source = NativeRenderer_ResolveMainRenderTarget();
+	s_presentedSource = source;
+#else
+	const struct NativeRenderTarget *source = &s_mainRenderTarget;
+#endif
+
+	float sourceY;
+	float sourceH;
+	NativeRenderer_GetPresentSourceRows(0, &sourceY, &sourceH);
+	NativeRenderer_PresentSource(source, &s_presentViewport, sourceY, sourceH);
+}
+
+#ifndef __vita__
+int NativeRenderer_IsDualViewFrame(void)
+{
+	return s_frameDualViewHeight > 0;
+}
+
+// Draw the second window's frame with its drawable current, without swapping.
+// The caller swaps and makes the main window current again.
+internal b32 NativeRenderer_DrawSecondWindow(SDL_GLContext context, int showGame)
+{
+	if ((g_secondWindow == NULL) || (context == NULL) || !SDL_GL_MakeCurrent(g_secondWindow, context))
+	{
+		return false;
+	}
+
+	GLfloat previousClearColor[4];
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, previousClearColor);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	NativeRenderer_SetScissorState(0);
+	int width = 0;
+	int height = 0;
+	SDL_GetWindowSizeInPixels(g_secondWindow, &width, &height);
+	glViewport(0, 0, width, height);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glClearColor(previousClearColor[0], previousClearColor[1], previousClearColor[2], previousClearColor[3]);
+
+	if (showGame && (s_presentedSource != NULL) && (s_presentedSource->width > 0) && (s_presentedSource->height > 0))
+	{
+		float sourceY;
+		float sourceH;
+		NativeRenderer_GetPresentSourceRows(1, &sourceY, &sourceH);
+		NativeRenderer_PresentSource(s_presentedSource, &s_secondPresentViewport, sourceY, sourceH);
+	}
+	return true;
+}
+
+void NativeRenderer_PresentSecondWindow(int showGame)
+{
+	SDL_GLContext context = SDL_GL_GetCurrentContext();
+	if (NativeRenderer_DrawSecondWindow(context, showGame))
+	{
+		SDL_GL_SwapWindow(g_secondWindow);
+		SDL_GL_MakeCurrent(g_window, context);
+	}
+}
+#endif
 
 void NativeRenderer_GetStreamingViewport(int contentHeight, int displayHeight, int *x, int *y, int *width, int *height)
 {

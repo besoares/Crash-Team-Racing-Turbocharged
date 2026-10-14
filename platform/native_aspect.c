@@ -24,18 +24,52 @@ static const int s_nativeAspectWidth[NATIVE_ASPECT_COUNT] = {4, 16, 16, 21, 32};
 static const int s_nativeAspectHeight[NATIVE_ASPECT_COUNT] = {3, 9, 10, 9, 9};
 static const char *s_nativeAspectLabels[NATIVE_ASPECT_COUNT] = {"4:3", "16:9", "16:10", "21:9", "32:9"};
 
+// Rows of one split-screen view and of the whole screen while each view is
+// presented on its own display; 0 when dual view is off.
+static int32_t s_dualViewHeight = 0;
+static int32_t s_dualScreenHeight = 0;
+
 static int NativeAspect_ValidRatio(int ratio)
 {
 	return ratio >= 0 && ratio < NATIVE_ASPECT_COUNT;
 }
 
-static NativeAspectFraction NativeAspect_GetScaleFraction(void)
+static NativeAspectFraction NativeAspect_GetDisplayScaleFraction(void)
 {
 	if (!NativeAspect_IsActive())
 		return (NativeAspectFraction){34, 45};
 	if (!NativeAspect_ValidRatio(gNativeAspectRatio))
 		return s_nativeAspectScale[NATIVE_ASPECT_16_9];
 	return s_nativeAspectScale[gNativeAspectRatio];
+}
+
+// A dual view stretches viewHeight rows over a whole display, so everything
+// drawn in screen space is widened by the same factor to keep its proportions.
+static NativeAspectFraction NativeAspect_GetScaleFraction(void)
+{
+	NativeAspectFraction fraction = NativeAspect_GetDisplayScaleFraction();
+	if (s_dualViewHeight > 0)
+	{
+		fraction.numerator *= s_dualScreenHeight;
+		fraction.denominator *= s_dualViewHeight;
+	}
+	return fraction;
+}
+
+void NativeAspect_SetDualView(int viewHeight, int screenHeight)
+{
+	if ((viewHeight <= 0) || (screenHeight <= 0))
+	{
+		viewHeight = 0;
+		screenHeight = 0;
+	}
+	s_dualViewHeight = viewHeight;
+	s_dualScreenHeight = screenHeight;
+}
+
+int NativeAspect_GetDualViewHeight(void)
+{
+	return s_dualViewHeight;
 }
 
 int NativeAspect_IsActive(void)
@@ -53,13 +87,7 @@ double NativeAspect_GetScaleX(void)
 	return (double)fraction.numerator / (double)fraction.denominator;
 }
 
-int NativeAspect_UsesExpandedVisibility(void)
-{
-	return NativeAspect_IsActive() && (NativeAspect_GetScaleX() < 0.75 || NativeAspect_GetFocalScale() < 1.0 ||
-	                                   (gNativeProjectionMode == NATIVE_PROJECTION_EDGE && gNativeProjectionStrength > 0));
-}
-
-double NativeAspect_GetFocalScale(void)
+static double NativeAspect_GetFovScale(void)
 {
 	if (!NativeAspect_IsActive() || gNativeFovDegrees == 0 || gNativeFovDegrees < 45 || gNativeFovDegrees > 100)
 	{
@@ -69,6 +97,23 @@ double NativeAspect_GetFocalScale(void)
 	// 9/16 vertical scaling over 216 pixels at a focal distance of 256.
 	// PAL's 59/96 over 236 pixels gives the same value.
 	return 0.75 / tan((double)gNativeFovDegrees * NATIVE_ASPECT_PI / 360.0);
+}
+
+int NativeAspect_UsesExpandedVisibility(void)
+{
+	// A dual view only restores the single-player field of view, which the
+	// retail masks cover, so it is judged by the display ratio and FOV alone.
+	NativeAspectFraction display = NativeAspect_GetDisplayScaleFraction();
+	return NativeAspect_IsActive() && ((double)display.numerator / (double)display.denominator < 0.75 || NativeAspect_GetFovScale() < 1.0 ||
+	                                   (gNativeProjectionMode == NATIVE_PROJECTION_EDGE && gNativeProjectionStrength > 0));
+}
+
+double NativeAspect_GetFocalScale(void)
+{
+	// A dual view gives each split-screen view the single-player vertical
+	// field of view; the wider ScaleX keeps the horizontal one.
+	const double dual = (s_dualViewHeight > 0) ? (double)s_dualViewHeight / (double)s_dualScreenHeight : 1.0;
+	return NativeAspect_GetFovScale() * dual;
 }
 
 int32_t NativeAspect_ScaleX(int32_t x)

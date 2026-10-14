@@ -895,9 +895,11 @@ global_variable const char *ctr_pause_bg_shader = "#ifdef VERTEX\n"
                                                   "attribute vec2 a_position;\n"
                                                   "varying vec2 v_uv;\n"
                                                   "uniform int flipY;\n"
+                                                  "uniform vec4 sourceRect;\n"
                                                   "void main() {\n"
                                                   "\tv_uv = a_position * 0.5 + 0.5;\n"
                                                   "\tif (flipY != 0) { v_uv.y = 1.0 - v_uv.y; }\n"
+                                                  "\tv_uv = sourceRect.xy + v_uv * sourceRect.zw;\n"
                                                   "\tgl_Position = vec4(a_position, 0.0, 1.0);\n"
                                                   "}\n"
                                                   "#endif\n"
@@ -957,6 +959,7 @@ global_variable const char *ctr_present_rgba_shader =
     "uniform vec2 texelSize;\n"
     "uniform int fxaaEnabled;\n"
     "uniform vec2 sharpPrescale;\n"
+    "uniform vec4 sourceRect;\n"
     "float fxaaLuma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }\n"
     "vec4 fxaaSample(vec2 uv) {\n"
     "    vec4 center = texture2D(s_src, uv);\n"
@@ -989,6 +992,7 @@ global_variable const char *ctr_present_rgba_shader =
     "}\n"
     "void main() {\n"
     "    vec2 uv = vec2(v_uv.x, mix(v_uv.y, 1.0 - v_uv.y, flipY));\n"
+    "    uv = sourceRect.xy + uv * sourceRect.zw;\n"
     "    if (sharpPrescale.x > 0.0) uv = sharpUv(uv);\n"
     "    gl_FragColor = (fxaaEnabled != 0) ? fxaaSample(uv) : texture2D(s_src, uv);\n"
     "}\n"
@@ -1103,6 +1107,8 @@ internal void NativeRenderer_InitVRAMPipelines(void)
 	s_pauseBackgroundFlipYLoc = glGetUniformLocation(s_pauseBackgroundShader, "flipY");
 	s_pauseBackgroundPaletteLoc = glGetUniformLocation(s_pauseBackgroundShader, "palette");
 	s_pauseBackgroundSmoothLoc = glGetUniformLocation(s_pauseBackgroundShader, "smoothMode");
+	s_pauseBackgroundSourceRectLoc = glGetUniformLocation(s_pauseBackgroundShader, "sourceRect");
+	glUniform4f(s_pauseBackgroundSourceRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
 	glUseProgram(0);
 
 	s_downsampleShader = NativeRenderer_Shader_Compile(ctr_downsample_shader, false, NULL);
@@ -1124,7 +1130,9 @@ internal void NativeRenderer_InitVRAMPipelines(void)
 	s_presentRgbaTexelSizeLoc = glGetUniformLocation(s_presentRgbaShader, "texelSize");
 	s_presentRgbaFxaaLoc = glGetUniformLocation(s_presentRgbaShader, "fxaaEnabled");
 	s_presentRgbaSharpPrescaleLoc = glGetUniformLocation(s_presentRgbaShader, "sharpPrescale");
+	s_presentRgbaSourceRectLoc = glGetUniformLocation(s_presentRgbaShader, "sourceRect");
 	glUniform1i(s_presentRgbaFxaaLoc, 0);
+	glUniform4f(s_presentRgbaSourceRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
 	glUniform2f(s_presentRgbaSharpPrescaleLoc, 0.0f, 0.0f);
 	glUniform2f(s_presentRgbaTexelSizeLoc, 1.0f, 1.0f);
 	s_projectedWorldShader = NativeRenderer_Shader_Compile(ctr_projected_world_shader, false, NULL);

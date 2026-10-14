@@ -59,6 +59,8 @@ global_variable int s_frameAntiAliasingMode = NATIVE_AA_OFF;
 global_variable b32 s_framePs1Resolution = false;
 global_variable GLint s_maxSamples = 0;
 global_variable GLint s_maxRenderTargetSize = 4096;
+global_variable SDL_Rect s_secondPresentViewport = {0, 0, 0, 0};
+global_variable int s_frameDualViewHeight = 0;
 #endif
 
 global_variable TextureID s_whiteTexture = (TextureID)-1;
@@ -89,6 +91,7 @@ global_variable GLuint s_pauseBackgroundShader = 0;
 global_variable GLint s_pauseBackgroundFlipYLoc = -1;
 global_variable GLint s_pauseBackgroundPaletteLoc = -1;
 global_variable GLint s_pauseBackgroundSmoothLoc = -1;
+global_variable GLint s_pauseBackgroundSourceRectLoc = -1;
 global_variable GLuint s_projectedWorldShader = 0;
 global_variable GLint s_projectedWorldRectLoc = -1;
 global_variable GLint s_projectedWorldTexelLoc = -1;
@@ -106,6 +109,7 @@ global_variable GLint s_presentRgbaFlipYLoc = -1;
 global_variable GLint s_presentRgbaTexelSizeLoc = -1;
 global_variable GLint s_presentRgbaFxaaLoc = -1;
 global_variable GLint s_presentRgbaSharpPrescaleLoc = -1;
+global_variable GLint s_presentRgbaSourceRectLoc = -1;
 global_variable GLuint s_downsampleShader = 0;
 global_variable GLint s_downsampleSrcSizeLoc = -1;
 global_variable GLint s_downsampleDstSizeLoc = -1;

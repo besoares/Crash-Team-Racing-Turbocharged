@@ -179,6 +179,10 @@ extern int g_cfg_bilinearFiltering;
 
 // Defined outside the renderer and read by it.
 extern SDL_Window *g_window;
+#ifndef __vita__
+// Dual monitor window, sharing g_window's GL context; NULL while closed.
+extern SDL_Window *g_secondWindow;
+#endif
 
 // gpu_state: last value pushed to GL, so repeated state changes stay cheap.
 // Invalidation goes through the Invalidate* helpers below rather than a direct
@@ -223,6 +227,11 @@ global_variable s32 s_mainResolveHeight;
 global_variable struct NativeRenderTarget s_projectedWorldTarget;
 global_variable b32 s_projectedWorldTargetReady;
 global_variable b32 s_projectedWorldBound;
+// Dual monitor: the second window's presentation viewport, and the rows of one
+// split-screen view while the frame shows each view on its own window (0 when
+// it does not), latched at BeginScene.
+global_variable SDL_Rect s_secondPresentViewport;
+global_variable int s_frameDualViewHeight;
 #endif
 
 // textures: the fixed textures every scene starts with.
@@ -248,6 +257,7 @@ global_variable GLuint s_pauseBackgroundShader;
 global_variable GLint s_pauseBackgroundFlipYLoc;
 global_variable GLint s_pauseBackgroundPaletteLoc;
 global_variable GLint s_pauseBackgroundSmoothLoc;
+global_variable GLint s_pauseBackgroundSourceRectLoc;
 global_variable GLuint s_projectedWorldShader;
 global_variable GLint s_projectedWorldRectLoc;
 global_variable GLint s_projectedWorldTexelLoc;
@@ -265,6 +275,7 @@ global_variable GLint s_presentRgbaFlipYLoc;
 global_variable GLint s_presentRgbaTexelSizeLoc;
 global_variable GLint s_presentRgbaFxaaLoc;
 global_variable GLint s_presentRgbaSharpPrescaleLoc;
+global_variable GLint s_presentRgbaSourceRectLoc;
 global_variable GLuint s_downsampleShader;
 global_variable GLint s_downsampleSrcSizeLoc;
 global_variable GLint s_downsampleDstSizeLoc;

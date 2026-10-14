@@ -403,6 +403,7 @@ if(BUILD_TESTING AND NOT EMSCRIPTEN)
             ctr_native_depth_renderer
             ctr_native_projection_renderer
             ctr_native_aspect_renderer
+            ctr_native_dual_monitor
             # ctr_native_hud_icons (disabled, see below)
             ctr_native_engine_save
         )
@@ -421,6 +422,7 @@ if(BUILD_TESTING AND NOT EMSCRIPTEN)
         add_test(NAME ctr_native_projection_game COMMAND ctr_native_depth_renderer_test --projection-only)
         add_test(NAME ctr_native_projection_renderer COMMAND ctr_native_depth_renderer_test --projection-renderer-only)
         add_test(NAME ctr_native_aspect_renderer COMMAND ctr_native_depth_renderer_test --aspect-renderer-only)
+        add_test(NAME ctr_native_dual_monitor COMMAND ctr_native_depth_renderer_test --dual-monitor-only)
         add_test(NAME ctr_native_oxide_unlock COMMAND ctr_native_depth_renderer_test --oxide-unlock-only)
         add_test(NAME ctr_native_engine_physics COMMAND ctr_native_depth_renderer_test --engine-physics-only)
         add_test(NAME ctr_native_drift_camera COMMAND ctr_native_depth_renderer_test --drift-camera-only)

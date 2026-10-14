@@ -404,6 +404,7 @@ static struct MenuRow s_nativeDisplayRows[] = {
     {.stringIndex = NATIVE_MENU_STRING_FRAME_RATE},
 #ifndef __vita__
     {.stringIndex = NATIVE_MENU_STRING_BORDERLESS},
+    {.stringIndex = NATIVE_MENU_STRING_DUAL_MONITOR},
 #if NATIVE_DRAW3D_SUPPORTED
     {.stringIndex = NATIVE_MENU_STRING_ASPECT_RATIO},
     {.stringIndex = NATIVE_MENU_STRING_FIELD_OF_VIEW},
@@ -2003,6 +2004,13 @@ static void MM_NativeOptionsMenuProc(struct RectMenu *menu)
 	if (choose == NATIVE_MENU_STRING_BORDERLESS)
 	{
 		Platform_SetBorderless(!gNativeBorderlessEnabled);
+		save_config();
+		return;
+	}
+
+	if (choose == NATIVE_MENU_STRING_DUAL_MONITOR)
+	{
+		Platform_SetDualMonitor(!gNativeDualMonitorEnabled);
 		save_config();
 	}
 #endif

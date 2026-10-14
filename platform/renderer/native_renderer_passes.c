@@ -267,7 +267,37 @@ int NativeRenderer_CapturePauseBackground(const u16 *bgr555Palette16, int smooth
 	glUniform3fv(s_pauseBackgroundPaletteLoc, 16, palette);
 
 	glBindVertexArray(s_vramQuadVAO);
-	NativeRenderer_DrawTriangles(0, 2);
+	const int logicalHeight = s_mainRenderTarget.logicalHeight;
+	const int viewHeight = s_frameDualViewHeight;
+	if ((viewHeight > 0) && (viewHeight < logicalHeight))
+	{
+		// The game pauses as a regular split screen, but the captured frame
+		// gave each view the single-player field of view. The split-screen
+		// view is the centre of that, viewHeight / logicalHeight of its rows.
+		GLfloat previousClearColor[4];
+		glGetFloatv(GL_COLOR_CLEAR_VALUE, previousClearColor);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glClearColor(previousClearColor[0], previousClearColor[1], previousClearColor[2], previousClearColor[3]);
+		const float fraction = (float)viewHeight / (float)logicalHeight;
+		for (int view = 0; view < 2; view++)
+		{
+			const int top = (view == 0) ? 0 : logicalHeight - viewHeight;
+			// Backdrop row 0 is the top of the screen.
+			const int dstY = top * s_pauseBackgroundTarget.height / logicalHeight;
+			const int dstH = (top + viewHeight) * s_pauseBackgroundTarget.height / logicalHeight - dstY;
+			const float sourceTop = (float)top + (float)viewHeight * (1.0f - fraction) * 0.5f;
+			const float sourceRows = (float)viewHeight * fraction;
+			glViewport(0, dstY, s_pauseBackgroundTarget.width, dstH);
+			glUniform4f(s_pauseBackgroundSourceRectLoc, 0.0f, 1.0f - (sourceTop + sourceRows) / (float)logicalHeight, 1.0f, sourceRows / (float)logicalHeight);
+			NativeRenderer_DrawTriangles(0, 2);
+		}
+		glUniform4f(s_pauseBackgroundSourceRectLoc, 0.0f, 0.0f, 1.0f, 1.0f);
+	}
+	else
+	{
+		NativeRenderer_DrawTriangles(0, 2);
+	}
 
 	NativeRenderer_EndUtilityPass(&state);
 	return 1;

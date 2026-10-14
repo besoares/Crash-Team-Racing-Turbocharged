@@ -107,6 +107,15 @@ static const char *const s_txtBorderless[6] =
 	"SIN BORDES",
 	"RANDLOOS",
 };
+static const char *const s_txtDualMonitor[6] =
+{
+	"DUAL MONITOR",
+	"DOUBLE ECRAN",
+	"ZWEI BILDSCHIRME",
+	"DOPPIO SCHERMO",
+	"DOBLE PANTALLA",
+	"TWEE SCHERMEN",
+};
 static const char *const s_txtAudio[6] =
 {
 	"AUDIO",
@@ -888,6 +897,7 @@ static const struct NativeOptionRow s_nativeOptionRows[] = {
     {NATIVE_MENU_STRING_DITHERING, NULL, &gNativeDitheringEnabled, NATIVE_OPTION_VALUE_LOCALIZED_ENUM, (const char *const *)dithering, 2, NULL, NULL, NULL, 1},
     {NATIVE_MENU_STRING_BORDERLESS, s_txtDisplay, &gNativeBorderlessEnabled, NATIVE_OPTION_VALUE_LABELLED_PAIR, NULL, 0, s_txtBorderless, s_txtWindowed, NULL,
 	 1},
+    {NATIVE_MENU_STRING_DUAL_MONITOR, s_txtDualMonitor, &gNativeDualMonitorEnabled, NATIVE_OPTION_VALUE_LABELLED_PAIR, NULL, 0, s_txtOn, s_txtOff, NULL, 1},
     {NATIVE_MENU_STRING_PGXP, s_txtClassicPgxp, &gNativePgxpMode, NATIVE_OPTION_VALUE_LABELLED_ENUM, (const char *const *)s_txtPgxpMode, NATIVE_PGXP_MODE_COUNT,
 	 NULL, NULL, NULL, 1},
     {NATIVE_MENU_STRING_DEPTH_BUFFER, s_txtClassicDepth, &gNativeDepthBufferEnabled, NATIVE_OPTION_VALUE_LABELLED_PAIR, NULL, 0, s_txtOn, s_txtOff, NULL, 1},

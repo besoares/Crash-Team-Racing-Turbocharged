@@ -447,7 +447,7 @@ void PushBuffer_SetMatrixVP(struct PushBuffer *pb)
 	pb->matrix_ViewProj.m[0][2] = CTR_WIDESCREEN_SCALE_X(pb->matrix_ViewProj.m[0][2]);
 #endif
 #if defined(CTR_NATIVE)
-	const int applyFov = NativeAspect_IsActive() && PushBuffer_IsWorldCamera(pb);
+	const int applyFov = (NativeAspect_IsActive() || NativeAspect_GetDualViewHeight()) && PushBuffer_IsWorldCamera(pb);
 	if (applyFov)
 	{
 		const double focalScale = NativeAspect_GetFocalScale();
@@ -698,7 +698,7 @@ void PushBuffer_UpdateFrustum(struct PushBuffer *pb)
 	val_X = CTR_WIDESCREEN_EXPAND_X(val_X);
 #endif
 #if defined(CTR_NATIVE)
-	if (NativeAspect_IsActive() && PushBuffer_IsWorldCamera(pb))
+	if ((NativeAspect_IsActive() || NativeAspect_GetDualViewHeight()) && PushBuffer_IsWorldCamera(pb))
 	{
 		const double focalScale = NativeAspect_GetFocalScale();
 		val_X = (int)ceil((double)val_X * NativeProjection_GetWorldOverscan() / focalScale);
@@ -708,7 +708,7 @@ void PushBuffer_UpdateFrustum(struct PushBuffer *pb)
 	val_Y = ((pb->rect.h * 0x600) / 0x360);
 	val_Y = val_Y / 2;
 #if defined(CTR_NATIVE)
-	if (NativeAspect_IsActive() && PushBuffer_IsWorldCamera(pb))
+	if ((NativeAspect_IsActive() || NativeAspect_GetDualViewHeight()) && PushBuffer_IsWorldCamera(pb))
 	{
 		const double focalScale = NativeAspect_GetFocalScale();
 		val_Y = (int)ceil((double)val_Y / focalScale);

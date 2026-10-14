@@ -35,6 +35,7 @@ int gNativeProjectionStrength;
 int gNativeAntiAliasingMode;
 int gNativeDitheringEnabled;
 int gNativeBorderlessEnabled;
+int gNativeDualMonitorEnabled;
 int gNativePgxpMode;
 int gNativePgxpIntegerNclipEnabled;
 int gNativeRendererMode;
@@ -132,7 +133,9 @@ static const char *const s_expectedWriteOrder[] = {
     "borderless", "pgxp", "renderer", "color_depth", "ps1_resolution", "texture_filter", "pgxp_integer_nclip", "modern_minimap", "modern_hud_icons", "font",
     "kart_hue", "max_lod", "depth_buffer", "hd_pause_screen", "smoothed_physics", "smoothed_ai", "smoothed_collisions", "smoothed_steering",
     // Added after the refactor, for the optional update check.
-    "update_check"};
+    "update_check",
+    // Added for the dual monitor two-player mode.
+    "dual_monitor"};
 
 // Keys load_config accepted before the refactor that are not written back.
 static const char *const s_legacyOnlyKeys[] = {"custom_ai_racers", "modern_map", "precise_minimap"};
@@ -179,7 +182,7 @@ static void test_bool_keys_normalise_and_round_trip(void)
 	ResetToDefaults();
 	const char *const boolKeys[] = {
 	    "mirror_mode", "default_camera_far", "default_hud_speedometer", "skip_mask_hints", "engine_selection", "additional_unlocks", "dithering",
-	    "borderless",  "pgxp_integer_nclip", "modern_hud_icons",        "max_lod",         "depth_buffer",     "ps1_resolution"};
+	    "borderless",  "pgxp_integer_nclip", "modern_hud_icons",        "max_lod",         "depth_buffer",     "ps1_resolution", "dual_monitor"};
 	for (unsigned int i = 0; i < sizeof(boolKeys) / sizeof(boolKeys[0]); i++)
 	{
 		const struct NativeOption *option = NativeOption_Find(boolKeys[i]);

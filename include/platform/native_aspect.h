@@ -27,5 +27,10 @@ int32_t NativeAspect_ScaleXCeil(int32_t x);
 void NativeAspect_GetPresentation(int *w, int *h);
 const char *NativeAspect_GetLabel(int ratio);
 double NativeAspect_GetHudPixelAspectX(void);
+// Dual monitor: each split-screen view of viewHeight rows is presented on its
+// own display as if it were the whole screenHeight-row screen. Screen-space
+// widths and the world camera compensate for the stretch. 0, 0 turns it off.
+void NativeAspect_SetDualView(int viewHeight, int screenHeight);
+int NativeAspect_GetDualViewHeight(void);
 
 #endif

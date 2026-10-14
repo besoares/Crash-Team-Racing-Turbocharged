@@ -32,6 +32,8 @@ void NativeGpu_SyncVRAMToCPU(int x, int y, int w, int h);
 // Greyscale full-resolution copy of the last presented frame (pause screen). Returns 0 if unavailable.
 int NativeGpu_CapturePauseBackground(const u16 *bgr555Palette16, int smooth);
 u32 NativeGpu_GetPauseBackgroundTexture(void);
+// Whether the last frame showed each two-player view on its own window.
+int NativeGpu_IsDualViewFrame(void);
 int NativeGpu_InitBackend(int width, int height);
 void NativeGpu_ShutdownBackend(void);
 void NativeGpu_ForceSynchronousFrame(void);

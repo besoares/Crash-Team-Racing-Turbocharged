@@ -158,6 +158,93 @@ int NativeRenderer_InitialiseRender(char *windowName, int width, int height, int
 	return 1;
 }
 
+#ifndef __vita__
+int NativeRenderer_OpenSecondWindow(const char *title)
+{
+	if (g_secondWindow != NULL)
+	{
+		return 1;
+	}
+	SDL_GLContext context = SDL_GL_GetCurrentContext();
+	if ((g_window == NULL) || (context == NULL))
+	{
+		return 0;
+	}
+
+	// Open on the first display the main window is not on, fullscreen there.
+	// With a single display it opens as an ordinary window.
+	SDL_DisplayID mainDisplay = SDL_GetDisplayForWindow(g_window);
+	SDL_DisplayID targetDisplay = 0;
+	int displayCount = 0;
+	SDL_DisplayID *displays = SDL_GetDisplays(&displayCount);
+	for (int i = 0; (displays != NULL) && (i < displayCount); i++)
+	{
+		if (displays[i] != mainDisplay)
+		{
+			targetDisplay = displays[i];
+			break;
+		}
+	}
+	SDL_free(displays);
+
+	const int position = (targetDisplay != 0) ? (int)SDL_WINDOWPOS_CENTERED_DISPLAY(targetDisplay) : (int)SDL_WINDOWPOS_UNDEFINED;
+	SDL_PropertiesID props = SDL_CreateProperties();
+	SDL_SetStringProperty(props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, title);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_X_NUMBER, position);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, position);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, 960);
+	SDL_SetNumberProperty(props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, 540);
+	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true);
+	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true);
+	SDL_SetBooleanProperty(props, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true);
+	g_secondWindow = SDL_CreateWindowWithProperties(props);
+	SDL_DestroyProperties(props);
+	if (g_secondWindow == NULL)
+	{
+		NATIVE_RENDERER_ERROR("Failed to open the second window: %s\n", SDL_GetError());
+		return 0;
+	}
+
+	if (targetDisplay != 0)
+	{
+		SDL_SetWindowFullscreenMode(g_secondWindow, NULL);
+		SDL_SetWindowFullscreen(g_secondWindow, true);
+		SDL_SyncWindow(g_secondWindow);
+	}
+
+	// The window must accept the shared context, or every frame would fail.
+	if (!SDL_GL_MakeCurrent(g_secondWindow, context))
+	{
+		NATIVE_RENDERER_ERROR("Failed to share the GL context with the second window: %s\n", SDL_GetError());
+		SDL_GL_MakeCurrent(g_window, context);
+		SDL_DestroyWindow(g_secondWindow);
+		g_secondWindow = NULL;
+		return 0;
+	}
+	SDL_GL_SetSwapInterval(0);
+	SDL_GL_MakeCurrent(g_window, context);
+	NativeRenderer_UpdatePresentationViewport();
+	return 1;
+}
+
+void NativeRenderer_CloseSecondWindow(void)
+{
+	if (g_secondWindow == NULL)
+	{
+		return;
+	}
+	SDL_GLContext context = SDL_GL_GetCurrentContext();
+	if (context != NULL)
+	{
+		SDL_GL_MakeCurrent(g_window, context);
+	}
+	SDL_DestroyWindow(g_secondWindow);
+	g_secondWindow = NULL;
+	s_frameDualViewHeight = 0;
+	NativeRenderer_UpdatePresentationViewport();
+}
+#endif
+
 void NativeRenderer_Shutdown(void)
 {
 	NativeFont_ReleaseGpu();
@@ -252,6 +339,7 @@ void NativeRenderer_BeginScene(void)
 	s_frameAntiAliasingMode =
 	    ((gNativeAntiAliasingMode >= NATIVE_AA_OFF) && (gNativeAntiAliasingMode < NATIVE_AA_MODE_COUNT)) ? gNativeAntiAliasingMode : NATIVE_AA_OFF;
 	s_framePs1Resolution = gNativePs1ResolutionEnabled != 0;
+	s_frameDualViewHeight = (g_secondWindow != NULL) ? NativeAspect_GetDualViewHeight() : 0;
 	NativeRenderer_BeginPassFrame();
 #endif
 #ifdef __vita__
