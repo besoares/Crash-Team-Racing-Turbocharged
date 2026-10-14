@@ -435,7 +435,7 @@ void Platform_Init(const char *title, int width, int height)
 
 	if (SDL_Init(SDL_INIT_VIDEO) == 0)
 	{
-		Platform_LogError("[CTR Native] Failed to initialise SDL\n");
+		Platform_LogError("[CTR Native] Failed to initialise SDL: %s\n", SDL_GetError());
 #ifdef __vita__
 		NativeGpu_ShutdownBackend();
 #endif

@@ -93,6 +93,27 @@ internal int NativeRenderer_InitialiseGLContext(char *windowName, int fullscreen
 
 	} while (minor_version >= 0);
 
+#if !defined(__vita__) && !defined(__EMSCRIPTEN__)
+	// macOS only offers forward-compatible 3.2+ core contexts, also when the
+	// Windows build runs under Wine there.
+	if (minor_version == -1)
+	{
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+		for (minor_version = 3; minor_version >= 2; minor_version--)
+		{
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, minor_version);
+			if (SDL_GL_CreateContext(g_window))
+			{
+				break;
+			}
+		}
+		if (minor_version < 2)
+		{
+			minor_version = -1;
+		}
+	}
+#endif
+
 	if (minor_version == -1)
 	{
 		NATIVE_RENDERER_ERROR("%s\n", "Failed to initialise - OpenGL 3.x is not supported. Please update video drivers.");

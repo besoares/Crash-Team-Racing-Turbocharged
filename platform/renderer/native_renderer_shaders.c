@@ -612,9 +612,9 @@ internal ShaderID NativeRenderer_Shader_Compile(const char *source, bool isPsxSh
 #ifndef __vita__
 	    "	#define varying     in\n"
 	    "	#define texture2D   texture\n" GLSL_NOPERSPECTIVE_DEFINE "	out vec4 fragColor;\n"
-#ifdef __EMSCRIPTEN__
+	    // gl_FragColor is gone from forward-compatible contexts, the only
+	    // core contexts macOS offers (Wine on a Mac included).
 	    "\t#define gl_FragColor fragColor\n"
-#endif
 #endif
 	    ;
 
