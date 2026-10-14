@@ -11,6 +11,7 @@
 #include "native_drift_camera_checks.h"
 #include "native_camera_options_checks.h"
 #include "native_boss_cutscene_checks.h"
+#include "native_dual_monitor_checks.h"
 
 static POLY_G3 depthTestPolys[4];
 static POLY_FT3 depthTestTexture;
@@ -2172,6 +2173,7 @@ int main(int argc, char **argv)
 		    {"anti_aliasing", NATIVE_MENU_STRING_ANTI_ALIASING, &gNativeAntiAliasingMode, 0, NATIVE_AA_MODE_COUNT - 1},
 		    {"dithering", NATIVE_MENU_STRING_DITHERING, &gNativeDitheringEnabled, 0, 1},
 		    {"borderless", NATIVE_MENU_STRING_BORDERLESS, &gNativeBorderlessEnabled, 0, 1},
+		    {"dual_monitor", NATIVE_MENU_STRING_DUAL_MONITOR, &gNativeDualMonitorEnabled, 0, 1},
 		    {"pgxp", NATIVE_MENU_STRING_PGXP, &gNativePgxpMode, 0, NATIVE_PGXP_MODE_COUNT - 1},
 		    {"renderer", NATIVE_MENU_STRING_RENDERER, &gNativeRendererMode, 0, NATIVE_RENDERER_MODE_COUNT - 1},
 		    {"color_depth", NATIVE_MENU_STRING_COLOR_DEPTH, &gNativeColorDepth, 0, NATIVE_COLOR_DEPTH_COUNT - 1},
@@ -2264,6 +2266,15 @@ int main(int argc, char **argv)
 		SDL_DestroyWindow(g_window);
 		SDL_Quit();
 		puts("Projection framebuffer sampling, AA and HUD checks passed");
+		return 0;
+	}
+	if (argc == 2 && strcmp(argv[1], "--dual-monitor-only") == 0)
+	{
+		DualTest_Presentation();
+		NativeRenderer_Shutdown();
+		SDL_DestroyWindow(g_window);
+		SDL_Quit();
+		puts("Dual monitor presentation, mirroring and pause backdrop checks passed");
 		return 0;
 	}
 	if (argc == 2 && strcmp(argv[1], "--aspect-renderer-only") == 0)

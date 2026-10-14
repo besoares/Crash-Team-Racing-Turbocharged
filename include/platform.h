@@ -38,6 +38,8 @@ int Platform_PollInput(void);
 int Platform_InputStartPressed(void);
 #if defined(CTR_NATIVE) && !defined(__vita__)
 void Platform_SetBorderless(int enabled);
+// Open or close the second window that shows player two on another display.
+void Platform_SetDualMonitor(int enabled);
 #endif
 
 #if defined(CTR_NATIVE)

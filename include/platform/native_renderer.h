@@ -27,6 +27,17 @@ u32 NativeRenderer_CreateMinimapTexture(int width, int height, const u8 *pixels)
 void NativeRenderer_DestroyFontAtlasTexture(u32 texture);
 #endif
 void NativeRenderer_PresentMainRenderTarget(void);
+#ifndef __vita__
+// Dual monitor: a second window sharing the GL context. While NativeAspect
+// reports a dual view, the main window shows the top split-screen view and the
+// second window the bottom one; otherwise the second window mirrors the game.
+int NativeRenderer_OpenSecondWindow(const char *title);
+void NativeRenderer_CloseSecondWindow(void);
+// Present and swap the second window; showGame 0 leaves it black.
+void NativeRenderer_PresentSecondWindow(int showGame);
+// Whether the frame in the main target was drawn as a dual view.
+int NativeRenderer_IsDualViewFrame(void);
+#endif
 // Compute the viewport used by streaming/video frames without changing GL state.
 void NativeRenderer_GetStreamingViewport(int contentHeight, int displayHeight, int *x, int *y, int *width, int *height);
 // Route onscreen world draws through a persistent colour/depth target. Resolve

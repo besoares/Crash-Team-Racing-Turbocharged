@@ -613,6 +613,15 @@ int NativeGpu_CapturePauseBackground(const u16 *bgr555Palette16, int smooth)
 #endif
 }
 
+int NativeGpu_IsDualViewFrame(void)
+{
+#ifdef __vita__
+	return 0;
+#else
+	return NativeRenderer_IsDualViewFrame();
+#endif
+}
+
 u32 NativeGpu_GetPauseBackgroundTexture(void)
 {
 #ifdef __vita__

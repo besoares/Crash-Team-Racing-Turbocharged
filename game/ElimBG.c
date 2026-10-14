@@ -182,7 +182,9 @@ void ElimBG_SaveScreenshot_Full(struct GameTracker *gGT)
 	NativeGpu_SyncVRAMToCPU(rSrc.x, rSrc.y, ELIM_BG_SCREEN_W, ELIM_BG_SCREEN_H);
 
 	// The render target still holds the frame VRAM was just packed from.
-	sElimBG_HdValid = (CTR_NATIVE_HD_PAUSE_MODE != 0) &&
+	// A dual monitor frame only becomes a split-screen backdrop through the
+	// full-resolution capture, so it is used even when HD Pause is off.
+	sElimBG_HdValid = ((CTR_NATIVE_HD_PAUSE_MODE != 0) || NativeGpu_IsDualViewFrame()) &&
 	                  NativeGpu_CapturePauseBackground(data.pauseScreenStrip, CTR_NATIVE_HD_PAUSE_MODE == ELIM_BG_HD_PAUSE_MODE_SMOOTH);
 #endif
 

@@ -82,10 +82,29 @@ static int MainFrame_NativeMirrorWorldActive(struct GameTracker *gGT)
 		(sdata->Loading.stage == LOAD_IDLE);
 }
 
+#if defined(CTR_NATIVE) && !defined(__vita__)
+// Dual monitor: while two players race, each view fills its own window. Menus,
+// pause, results and loading keep the regular split screen, mirrored to both
+// windows, because they are laid out across the whole screen.
+static int MainFrame_NativeDualViewActive(struct GameTracker *gGT)
+{
+	return gNativeDualMonitorEnabled && (gGT->numPlyrCurrGame == 2) &&
+	       ((gGT->gameMode1 & (MAIN_MENU | LOADING | PAUSE_ALL | GAME_CUTSCENE)) == 0) &&
+	       (((gGT->gameMode1 & END_OF_RACE) == 0) || (gGT->timerEndOfRaceVS != 0)) && ((gGT->hudFlags & HUD_FLAG_CUP_STANDINGS) == 0) &&
+	       (sdata->ptrActiveMenu == NULL) && (sdata->ptrDesiredMenu == NULL) && (sdata->Loading.stage == LOAD_IDLE) &&
+	       LOAD_IsOpen_RacingOrBattle();
+}
+#endif
+
 void MainFrame_RenderFrame(struct GameTracker *gGT, struct GamepadSystem *gGamepads)
 {
 	struct Level *lev = gGT->level1;
 	struct mesh_info *ptr_mesh_info = 0;
+#if defined(CTR_NATIVE) && !defined(__vita__)
+	// Latched before anything is drawn: the projection, HUD and presentation
+	// of this frame all follow it.
+	NativeAspect_SetDualView(MainFrame_NativeDualViewActive(gGT) ? gGT->pushBuffer[0].rect.h : 0, SCREEN_HEIGHT);
+#endif
 #if defined(CTR_NATIVE)
 	int nativeMirrorWorldActive = MainFrame_NativeMirrorWorldActive(gGT);
 	gNativeMirrorModeRenderActive = 0;

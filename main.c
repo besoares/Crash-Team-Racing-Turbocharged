@@ -246,6 +246,7 @@ int gNativeAntiAliasingMode = NATIVE_AA_FXAA;
 int gNativeDitheringEnabled = 1;
 int gNativePs1ResolutionEnabled = 0;
 int gNativeBorderlessEnabled = 0;
+int gNativeDualMonitorEnabled = 0;
 int gNativeMaxLodEnabled = 1;
 int gNativeHdPauseMode = 2;
 #endif

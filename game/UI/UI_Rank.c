@@ -2,6 +2,7 @@
 
 #if defined(CTR_NATIVE)
 #include "platform/native_adhoc.h"
+#include "platform/native_aspect.h"
 #endif
 
 enum UIRankConstants
@@ -122,6 +123,32 @@ internal int UI_Rank_GetDamageColor(int driverIndex)
 
 	return color;
 }
+
+#if defined(CTR_NATIVE) && !defined(__vita__)
+// Dual monitor: the multiplayer progress line sits between the two views,
+// which are now on separate windows, so each view gets a copy along its inner
+// edge. Returns how many copies to draw and fills their top rows.
+static int UI_Rank_TrackRows(const struct Icon *icon, int scale, int *rows)
+{
+	const int viewHeight = NativeAspect_GetDualViewHeight();
+	if ((viewHeight <= 0) || (icon == NULL))
+	{
+		rows[0] = UI_RANK_TRACK_ICON_POS_Y;
+		return 1;
+	}
+	rows[0] = viewHeight - FP_Mult(icon->texLayout.v2 - icon->texLayout.v0, scale);
+	rows[1] = SCREEN_HEIGHT - viewHeight;
+	return 2;
+}
+#else
+static int UI_Rank_TrackRows(const struct Icon *icon, int scale, int *rows)
+{
+	(void)icon;
+	(void)scale;
+	rows[0] = UI_RANK_TRACK_ICON_POS_Y;
+	return 1;
+}
+#endif
 
 void UI_DrawRankedDrivers(void)
 {
@@ -376,13 +403,15 @@ void UI_DrawRankedDrivers(void)
 			}
 
 			int posX = nextTrackX + UI_RANK_TRACK_ICON_POS_X_OFFSET;
-			int posY = UI_RANK_TRACK_ICON_POS_Y;
+			struct Icon *driverIcon = gGT->ptrIcons[data.MetaDataCharacters[data.characterIDs[driverIndex]].iconID];
+			int rows[2];
+			const int rowCount = UI_Rank_TrackRows(driverIcon, UI_RANK_TRACK_ICON_SCALE, rows);
 
-			UI_DrawDriverIconGT4ForDriver(driverIndex,
-			    gGT->ptrIcons[data.MetaDataCharacters[data.characterIDs[driverIndex]].iconID],
-			    posX, posY, &gGT->backBuffer->primMem, gGT->pushBuffer_UI.ptrOT,
-			    damageColor, damageColor, damageColor, damageColor,
-			    TRANS_50_DECAL, UI_RANK_TRACK_ICON_SCALE);
+			for (int row = 0; row < rowCount; row++)
+			{
+				UI_DrawDriverIconGT4ForDriver(driverIndex, driverIcon, posX, rows[row], &gGT->backBuffer->primMem, gGT->pushBuffer_UI.ptrOT, damageColor,
+				                              damageColor, damageColor, damageColor, TRANS_50_DECAL, UI_RANK_TRACK_ICON_SCALE);
+			}
 
 			*trackIconX = nextTrackX;
 			trackIconX = trackIconX + 1;
@@ -457,19 +486,23 @@ void UI_DrawRankedDrivers(void)
 #endif
 
 			int posX = (remainingProgress / trackScreenUnit) + UI_RANK_TRACK_ICON_POS_X_OFFSET;
-			int posY = UI_RANK_TRACK_ICON_POS_Y;
+			int rows[2];
+			const int rowCount = UI_Rank_TrackRows(gGT->ptrIcons[UI_RANK_TRACK_WARPBALL_ICON], UI_RANK_TRACK_WARPBALL_SCALE, rows);
 
-			DecalHUD_DrawWeapon(
-			    // warpball icon
-			    gGT->ptrIcons[UI_RANK_TRACK_WARPBALL_ICON], posX, posY,
+			for (int row = 0; row < rowCount; row++)
+			{
+				DecalHUD_DrawWeapon(
+				    // warpball icon
+				    gGT->ptrIcons[UI_RANK_TRACK_WARPBALL_ICON], posX, rows[row],
 
-			    // pointer to PrimMem struct
-			    &gGT->backBuffer->primMem,
+				    // pointer to PrimMem struct
+				    &gGT->backBuffer->primMem,
 
-			    // pointer to OT memory
-			    gGT->pushBuffer_UI.ptrOT,
+				    // pointer to OT memory
+				    gGT->pushBuffer_UI.ptrOT,
 
-			    TRANS_50_DECAL, UI_RANK_TRACK_WARPBALL_SCALE, 1);
+				    TRANS_50_DECAL, UI_RANK_TRACK_WARPBALL_SCALE, 1);
+			}
 		}
 	}
 }

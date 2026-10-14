@@ -144,6 +144,7 @@ If startup fails, check the exact `assets/ctr-u.bin` location and image format f
 - [PC] Depth Buffer (Options > Graphics): optional per-pixel depth testing corrects overlapping world polygons. Works with every PGXP setting; Off retains original polygon ordering; the default is On.
 - [PC] Anti-aliasing option (Options > Graphics, cycle with left/right): Off, FXAA, MSAA 2x/4x/8x, or SSAA 2x/4x. MSAA smooths polygon edges at low cost; SSAA renders at 2x or 4x the pixel count and box-filters down, which also smooths texture and sub-pixel detail. FXAA remains the default; MSAA sample counts are capped at the GPU's limit.
 - [PC] Resolution (Options > Graphics): PS1 renders at the original line count and horizontal pixel density (512x216 at 4:3, wider for wider aspects) and upscales with sharp bilinear filtering; HD renders at the window's resolution. Saved as `ps1_resolution`; the PS1 preset turns it on.
+- [PC] Dual Monitor (Options > Display): two-player races show each player's view on its own display instead of a split screen. Turning it on opens a second "Player 2" window, borderless fullscreen on the first display the game window is not on (an ordinary window when there is only one display). While both players race, the main window shows player 1 and the second window player 2, each with the single-player field of view at the selected aspect ratio and the two-player HUD scaled to fit. Menus, pause, results, cup standings and loading screens use the regular split screen, mirrored on both windows. Three and four players, and one player, are mirrored too. F11 or Alt+Enter toggles fullscreen for whichever window has focus; closing the second window turns the mode off for the session. Works with both renderers. Off by default; saved as `dual_monitor=0/1`.
 
 ## Online leaderboard
 
@@ -178,7 +179,7 @@ The roadmap now lives on the website: [ctr.cmzi.uk/#roadmap](https://ctr.cmzi.uk
 
 ## Special controls bindings
 
-- [PC] F11 is a shortcut to swap between Windowed and Fullscreen Borderless mode.
+- [PC] F11 is a shortcut to swap between Windowed and Fullscreen Borderless mode. With Dual Monitor on, it applies to the focused window.
 
 ## How to Install
 

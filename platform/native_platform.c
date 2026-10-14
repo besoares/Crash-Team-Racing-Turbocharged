@@ -32,6 +32,9 @@
 #include <string.h>
 
 SDL_Window *g_window = NULL;
+#ifndef __vita__
+SDL_Window *g_secondWindow = NULL;
+#endif
 int g_dbg_polygonSelected = 0;
 
 extern int g_cfg_bilinearFiltering;
@@ -45,11 +48,15 @@ extern int g_windowHeight;
 extern int g_windowWidth;
 #ifndef __vita__
 extern int gNativeBorderlessEnabled;
+extern int gNativeDualMonitorEnabled;
 #endif
 
 #define HOST_ALT_LEFT  (1 << 0)
 #define HOST_ALT_RIGHT (1 << 1)
 global_variable int s_hostAltKeyState = 0;
+#ifndef __vita__
+global_variable char s_secondWindowName[160];
+#endif
 global_variable int s_platformInitialized = 0;
 global_variable int s_platformBeginScene = 0;
 global_variable int s_pinnedVramDisplayFrames = 0;
@@ -218,6 +225,40 @@ void Platform_SetBorderless(int enabled)
 	Platform_UpdateCursorVisibility();
 	NativeRenderer_ResetDevice();
 }
+
+void Platform_SetDualMonitor(int enabled)
+{
+	enabled = (enabled != 0);
+	if (g_window == NULL)
+	{
+		gNativeDualMonitorEnabled = enabled;
+		return;
+	}
+
+	if (!enabled)
+	{
+		NativeRenderer_CloseSecondWindow();
+	}
+	else if (!NativeRenderer_OpenSecondWindow(s_secondWindowName))
+	{
+		Platform_LogWarn("[CTR Native] Dual monitor unavailable: the second window could not be opened\n");
+		enabled = 0;
+	}
+	gNativeDualMonitorEnabled = enabled;
+}
+
+internal void Platform_ToggleSecondWindowFullscreen(void)
+{
+	const int fullscreen = (SDL_GetWindowFlags(g_secondWindow) & SDL_WINDOW_FULLSCREEN) == 0;
+	if (fullscreen)
+	{
+		SDL_SetWindowFullscreenMode(g_secondWindow, NULL);
+	}
+	if (!SDL_SetWindowFullscreen(g_secondWindow, fullscreen))
+	{
+		Platform_LogWarn("[CTR Native] Failed to change the second window's fullscreen mode: %s\n", SDL_GetError());
+	}
+}
 #endif
 
 internal void Platform_HandleFullscreenToggle(void)
@@ -377,6 +418,9 @@ void Platform_Init(const char *title, int width, int height)
 
 	Platform_LogInit(title);
 	Platform_GetWindowName(title, windowName, sizeof(windowName));
+#ifndef __vita__
+	snprintf(s_secondWindowName, sizeof(s_secondWindowName), "%s - Player 2", windowName);
+#endif
 
 	Platform_Log("[CTR Native] Initialising platform\n");
 
@@ -451,6 +495,7 @@ void Platform_Init(const char *title, int width, int height)
 #endif
 #ifndef __vita__
 	Platform_SetBorderless(gNativeBorderlessEnabled);
+	Platform_SetDualMonitor(gNativeDualMonitorEnabled);
 #endif
 	atexit(Platform_Shutdown);
 	Platform_UpdateCursorVisibility();
@@ -484,6 +529,7 @@ void Platform_Shutdown(void)
 #if defined(CTR_INTERNAL)
 	NativeRenderer_FinishGpuMeasurements();
 #endif
+	NativeRenderer_CloseSecondWindow();
 	NativeRenderer_Shutdown();
 	if (g_window != NULL)
 	{
@@ -570,6 +616,9 @@ void Platform_EndScene(void)
 		}
 		NativeRenderer_EndGpuFrame();
 		NativeRenderer_SwapWindow();
+#ifndef __vita__
+		NativeRenderer_PresentSecondWindow(0);
+#endif
 		s_pinnedVramDisplayFrames--;
 		if (s_pinnedVramDisplayFrames <= 0)
 		{
@@ -590,6 +639,9 @@ void Platform_EndScene(void)
 #endif
 	NativeRenderer_EndGpuFrame();
 	NativeRenderer_SwapWindow();
+#ifndef __vita__
+	NativeRenderer_PresentSecondWindow(1);
+#endif
 	NativePerf_EndScope(NATIVE_PERF_BUCKET_PLATFORM_END_SCENE);
 }
 
@@ -739,13 +791,25 @@ void Platform_PollHostEvents(void)
 			break;
 #ifndef __vita__
 		case SDL_EVENT_WINDOW_FOCUS_LOST:
-			NativeAudio_SetBackgroundMuted(1);
+			// Moving focus between the game's two windows keeps the sound on.
+			if (SDL_GetKeyboardFocus() == NULL)
+			{
+				NativeAudio_SetBackgroundMuted(1);
+			}
 			break;
 		case SDL_EVENT_WINDOW_FOCUS_GAINED:
 			NativeAudio_SetBackgroundMuted(0);
 			break;
 #endif
 		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+#ifndef __vita__
+			// Closing the player two window only leaves dual monitor mode.
+			if ((g_secondWindow != NULL) && (event.window.windowID == SDL_GetWindowID(g_secondWindow)))
+			{
+				Platform_SetDualMonitor(0);
+				break;
+			}
+#endif
 			exit(0);
 			break;
 		case SDL_EVENT_KEY_DOWN:
@@ -760,6 +824,13 @@ void Platform_PollHostEvents(void)
 			{
 				if ((down != 0) && (event.key.repeat == 0))
 				{
+#ifndef __vita__
+					if ((g_secondWindow != NULL) && (event.key.windowID == SDL_GetWindowID(g_secondWindow)))
+					{
+						Platform_ToggleSecondWindowFullscreen();
+						break;
+					}
+#endif
 					Platform_HandleFullscreenToggle();
 				}
 				break;
@@ -780,6 +851,13 @@ void Platform_PollHostEvents(void)
 			{
 				if ((s_hostAltKeyState != 0) && (down != 0) && (event.key.repeat == 0))
 				{
+#ifndef __vita__
+					if ((g_secondWindow != NULL) && (event.key.windowID == SDL_GetWindowID(g_secondWindow)))
+					{
+						Platform_ToggleSecondWindowFullscreen();
+						break;
+					}
+#endif
 					Platform_HandleFullscreenToggle();
 				}
 				break;

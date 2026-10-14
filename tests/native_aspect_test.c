@@ -90,5 +90,44 @@ int main(void)
 		NativeAspect_GetPresentation(&w, &h);
 		assert(w == 16 && h == 9);
 	}
+
+	// Dual monitor: a 106-row two-player view stretched over a whole display
+	// must project like the single-player screen it replaces, in both renderers.
+	for (int renderer = 0; renderer < 2; renderer++)
+	{
+		gNativeRendererMode = renderer ? NATIVE_RENDERER_NATIVE : NATIVE_RENDERER_CLASSIC;
+		gNativeAspectRatio = NATIVE_ASPECT_16_9;
+		gNativeFovDegrees = 0;
+		const double displayScale = NativeAspect_GetScaleX();
+		NativeAspect_SetDualView(106, 216);
+		assert(NativeAspect_GetDualViewHeight() == 106);
+		// Horizontal: the camera scale is the single-player one.
+		assert(fabs(NativeAspect_GetScaleX() * NativeAspect_GetFocalScale() - displayScale) < 1e-12);
+		// Vertical: tan(fov / 2) over the 53 rows above the centre is retail's 0.75.
+		assert(fabs(53.0 / (256.0 * 9.0 / 16.0 * NativeAspect_GetFocalScale()) - 0.75) < 1e-12);
+		// Screen-space widths grow with the stretch, keeping HUD proportions.
+		assert(NativeAspect_ScaleX(4096) == (int32_t)((int64_t)4096 * (renderer ? 3 : 34) * 216 / ((renderer ? 4 : 45) * 106)));
+		assert(NativeAspect_ExpandX(NativeAspect_ScaleX(10600)) <= 10600);
+		{
+			int w = 0, h = 0;
+			NativeAspect_GetPresentation(&w, &h);
+			assert(w == 16 && h == 9);
+		}
+		// The restored single-player view needs no wider visibility than 1P.
+		assert(!NativeAspect_UsesExpandedVisibility());
+		if (renderer)
+		{
+			gNativeFovDegrees = 90;
+			assert(fabs(NativeAspect_GetFocalScale() - 0.75 * 106.0 / 216.0) < 1e-12);
+			assert(NativeAspect_UsesExpandedVisibility());
+			gNativeFovDegrees = 0;
+		}
+		NativeAspect_SetDualView(0, 0);
+		assert(NativeAspect_GetDualViewHeight() == 0);
+		assert(fabs(NativeAspect_GetScaleX() - displayScale) < 1e-12);
+		assert(fabs(NativeAspect_GetFocalScale() - 1.0) < 1e-12);
+	}
+	NativeAspect_SetDualView(106, 0);
+	assert(NativeAspect_GetDualViewHeight() == 0);
 	return 0;
 }

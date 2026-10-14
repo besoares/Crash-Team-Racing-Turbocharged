@@ -568,6 +568,15 @@ const struct NativeOption g_nativeOptions[] = {
         .defaultValue = 0,
         .persistent = 1,
     },
+#if !defined(__vita__)
+    {
+        .key = "dual_monitor",
+        .kind = NATIVE_OPTION_BOOL,
+        .value = &gNativeDualMonitorEnabled,
+        .defaultValue = 0,
+        .persistent = 1,
+    },
+#endif
 };
 
 const unsigned int g_nativeOptionCount = sizeof(g_nativeOptions) / sizeof(g_nativeOptions[0]);
